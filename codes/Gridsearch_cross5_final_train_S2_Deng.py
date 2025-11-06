@@ -29,8 +29,8 @@ random.seed(zhongzi)
 np.random.seed(zhongzi)
 import os
 
-device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
-
+device = torch.device('cuda:1' if torch.cuda.is_available() else 'cpu')
+#device = torch.device('cpu')
 def do_compute_metrics(probas_pred, target):
     y_pred_train1 = []
     y_label_train = np.array(target)
@@ -86,10 +86,9 @@ def train(dim,l,head,model, train_data_loader, index, test_data_loader,loss_fn, 
 
             drug1s, drug2s,labels= batch
 
-            #outs,orgin_morgens,trimnet_pair,autoencode_pair,graph_pair=model(drug1s, drug2s,graph)
-            outs,_=model(drug1s, drug2s)
+            outs,clloss=model(drug1s, drug2s)
             loss = loss_fn(outs, labels)
-
+            loss = loss+clloss
             outs=outs.detach().cpu().numpy()
             labels=labels.detach().cpu().numpy()
 
@@ -126,7 +125,7 @@ def train(dim,l,head,model, train_data_loader, index, test_data_loader,loss_fn, 
             graph_pairs = []
             for batch in test_data_loader:
                 drug1s, drug2s, labels  = batch
-                outs,_ = model(drug1s, drug2s)
+                outs,pair = model(drug1s, drug2s)
 
                 probas_pred = outs.detach().cpu().numpy()
                 labels = labels.detach().cpu().numpy()
@@ -137,7 +136,7 @@ def train(dim,l,head,model, train_data_loader, index, test_data_loader,loss_fn, 
                 # val_drug1s.append(drug1s.detach().cpu().numpy())
                 # val_drug2s.append(drug2s.detach().cpu().numpy())
                 #
-                # orgin_morgens.append(orgin_morgen.detach().cpu().numpy())
+                orgin_morgens.append(pair.detach().cpu().numpy())
                 # trimnet_pairs.append(trimnet_pair.detach().cpu().numpy())
                 # autoencode_pairs.append(autoencode_pair.detach().cpu().numpy())
                 # graph_pairs.append(graph_pair.detach().cpu().numpy())
@@ -145,7 +144,7 @@ def train(dim,l,head,model, train_data_loader, index, test_data_loader,loss_fn, 
             test_probas_pred = np.concatenate(test_probas_pred)
             test_ground_truth = np.concatenate(test_ground_truth)
 
-            # orgin_morgens = np.concatenate(orgin_morgens)
+            #orgin_morgens = np.concatenate(orgin_morgens)
             # trimnet_pairs = np.concatenate(trimnet_pairs)
             # autoencode_pairs = np.concatenate(autoencode_pairs)
             # graph_pairs = np.concatenate(graph_pairs)
@@ -154,27 +153,6 @@ def train(dim,l,head,model, train_data_loader, index, test_data_loader,loss_fn, 
             # val_drug2s = np.concatenate(val_drug2s).reshape((-1))
 
             test_acc, test_f1, test_recall, test_precision, test_kappa,predlabls,truelabels  = do_compute_metrics(test_probas_pred,test_ground_truth)
-            if best_f1 < train_f1:
-                best_f1 = train_f1
-                torch.save(model.state_dict(), 'S2_DDIMDL_cross' + str(index) + '.pkl')
-                print('model saved')
-                predlabls += 1
-                truelabels += 1
-                #print(val_drug1s.shape,test_probas_pred.shape,attens.shape,truelabels.shape,predlabls.shape)
-                #concatenated1 =attns
-                # concatenated = np.concatenate(
-                #     (val_drug1s[:, np.newaxis], val_drug2s[:, np.newaxis],test_probas[:, np.newaxis]),
-                #     axis=1)
-                # np.savetxt('test_probas_pred' + str(index) + '.csv', test_probas_pred, delimiter=',')
-                # np.savetxt('orgin_morgens' + str(index) + '.csv', orgin_morgens, delimiter=',')
-                # np.savetxt('trimnet_pairs' + str(index) + '.csv', trimnet_pairs, delimiter=',')
-                # np.savetxt('autoencode_pairs' + str(index) + '.csv', autoencode_pairs, delimiter=',')
-                # np.savetxt('graph_pairs' + str(index) + '.csv', graph_pairs, delimiter=',')
-                # 保存到CSV文件
-                #np.savetxt('MGFF_S0_multihead'+str(index)+'.csv', concatenated1, delimiter=',')
-                # 将每一折的结果保存到同一个CSV文件中
-                with open('S2_deng_results.csv', 'a') as f:
-                    f.write(f"{index},{test_acc}, {test_f1}, {test_recall}, {test_precision}, {test_kappa}\n")
             
         print(f'Epoch: {i} ({time.time() - start:.4f}s), train_loss: {train_loss:.4f}, train_acc: {train_acc:.4f}')
         print("test:", test_acc, test_f1, test_recall, test_precision, test_kappa)
@@ -232,7 +210,7 @@ if __name__ == '__main__':
             train(dim,l,head,model, train_data_loader, index,test_data_loader, loss, optimizer, n_epochs, device,scheduler)
 
     # 设置超参数网格
-    ls = [ 2]#1, 2, 3, 4, 5
+    ls = [1]#1, 2, 3, 4, 5
     dims = [256]#32, 64, 128, 256
     heads = [2]#2, 4, 6, 8
     for l in ls:

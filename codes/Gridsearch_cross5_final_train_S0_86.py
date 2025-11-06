@@ -30,7 +30,7 @@ random.seed(zhongzi)
 np.random.seed(zhongzi)
 import os
 
-device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+device = torch.device('cuda:2' if torch.cuda.is_available() else 'cpu')
 
 def do_compute_metrics(probas_pred, target):
     y_pred_train1 = []
@@ -85,8 +85,11 @@ def train(model, train_data_loader, index, test_data_loader,loss_fn,  optimizer,
 
             drug1s, drug2s,labels= batch
 
-            outs=model(drug1s, drug2s,graph)
+            outs,clloss=model(drug1s, drug2s,graph)
+
             loss = loss_fn(outs, labels)
+            #print(loss,clloss)
+            loss = loss+0.1*clloss
 
             outs=outs.detach().cpu().numpy()
             labels=labels.detach().cpu().numpy()
@@ -120,7 +123,7 @@ def train(model, train_data_loader, index, test_data_loader,loss_fn,  optimizer,
 
                 drug1s, drug2s, labels  = batch
 
-                outs= model(drug1s, drug2s,graph)
+                outs,_= model(drug1s, drug2s,graph)
 
                 probas_pred = outs.detach().cpu().numpy()
                 labels = labels.detach().cpu().numpy()
@@ -135,21 +138,7 @@ def train(model, train_data_loader, index, test_data_loader,loss_fn,  optimizer,
             val_drug2s = np.concatenate(val_drug2s).reshape((-1))
 
             test_acc, test_f1, test_recall, test_precision, test_kappa,predlabls,truelabels  = do_compute_metrics(test_probas_pred,test_ground_truth)
-            if best_f1 < test_f1:
-                best_f1 = test_f1
-                #torch.save(model.state_dict(), 'S0_ryu_cross' + str(index) + '.pkl')
-                print('model saved')
-                predlabls += 1
-                truelabels += 1
-                concatenated = np.concatenate(
-                    (val_drug1s[:, np.newaxis], val_drug2s[:, np.newaxis], truelabels[:, np.newaxis],
-                     predlabls[:, np.newaxis]),
-                    axis=1)
-                #保存到CSV文件
-                np.savetxt('DRLF_S0_ryu_results'+str(index)+'.csv', concatenated, delimiter=',')
-                # 将每一折的结果保存到同一个CSV文件中
-                # with open('DRLF_S0_ryu_results.csv', 'a') as f:
-                #     f.write(f"{index},{test_acc}, {test_f1}, {test_recall}, {test_precision}, {test_kappa}\n")
+
         print(f'Epoch: {i} ({time.time() - start:.4f}s), train_loss: {train_loss:.4f}, train_acc: {train_acc:.4f}')
         print("test:", test_acc, test_f1, test_recall, test_precision, test_kappa)
 
@@ -192,7 +181,7 @@ if __name__ == '__main__':
             train_data_loader = Data.DataLoader(traindata, batch_size=batch_size, shuffle=True, drop_last=True)
             test_data_loader = Data.DataLoader(testdata, batch_size=batch_size, drop_last=True)
 
-            model = model_S0(device,index,256,2,2).to(device=device)
+            model = model_S0(device,index,256,1,2).to(device=device)
 
             loss=torch.nn.CrossEntropyLoss()
 
