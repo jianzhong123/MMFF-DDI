@@ -1,5 +1,9 @@
-# DRLF-DDI
-We propose DRLF-DDI, a dual-view representation learning framework for DDIE prediction. Specifically, in the individual drug view, DRLF-DDI designs an autoencoder module with multi-head attention mechanism to generate enhanced Morgan fingerprints; in the interaction view, a DDI-Transformer module is introduced to capture the interaction features.
+# MMFF-DDI
+We propose MMFF-DDI, a multi-modal fusion framework based on contrastive learning for DDIE prediction. The main contributions of this study are summarized as follows:
+• We extract multi-modal features for individual drugs, including enhanced Morgan ffngerprints, MolFormerderived embeddings, and 3D structural representations.
+• A multi-head attention autoencoder that generates enhanced Morgan ffngerprints with denser and more informative representations.
+• A contrastive multi-modal integration module that aligns multi-source features within a shared latent space, achieving semantic alignment and cross-modal complementarity
+ beyond simple concatenation.
 
 ## Requirements
 
@@ -15,8 +19,6 @@ We use the same datasets as MRLF-DDI, and detailed descriptions are available at
   
 ## Files:
 The source code files are in the ./codes folder. The details are as follows:
-* construct_trans_graph_86.py: constructs the DDI event graph using the training dataset in the S0 setting (based on Ryu's dataset).
-* construct_trans_graph.py: constructs the DDI event graph using the training dataset in the S0 setting (based on Deng's dataset).
 * grid_cross5_model_S0_86.py: the model code in the S0 setting (based on Ryu's dataset).
 * grid_cross5_model_S0_deng.py: the model code in the S0 setting (based on Deng's dataset).
   
